@@ -1,7 +1,7 @@
-using FlightApi.Data;
-using FlightApi.Model;
+using FlightApi.Dto.Request;
+using FlightApi.Dto.Response;
+using FlightApi.Service;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace FlightApi.Controller;
 
@@ -9,77 +9,64 @@ namespace FlightApi.Controller;
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IUserService _userService;
 
-    public UsersController(ApplicationDbContext context)
+    public UsersController(IUserService userService)
     {
-        _context = context;
+        _userService = userService;
     }
 
     // GET: api/users
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+    public async Task<ActionResult<IEnumerable<UserResponse>>> GetUsers()
     {
-        return await _context.Users.ToListAsync();
+        var users = await _userService.GetAllAsync();
+        return Ok(users);
     }
 
     // GET: api/users/{id}
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<User>> GetUser(Guid id)
+    public async Task<ActionResult<UserResponse>> GetUser(Guid id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _userService.GetByIdAsync(id);
         if (user is null)
         {
             return NotFound();
         }
 
-        return user;
+        return Ok(user);
     }
 
     // POST: api/users
     [HttpPost]
-    public async Task<ActionResult<User>> CreateUser(User user)
+    public async Task<ActionResult<UserResponse>> CreateUser(CreateUserRequest request)
     {
-        user.Id = Guid.NewGuid();
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
+        var created = await _userService.CreateAsync(request);
+        return CreatedAtAction(nameof(GetUser), new { id = created.Id }, created);
     }
 
     // PUT: api/users/{id}
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> UpdateUser(Guid id, User user)
+    public async Task<ActionResult<UserResponse>> UpdateUser(Guid id, UpdateUserRequest request)
     {
-        if (id != user.Id)
-        {
-            return BadRequest("Id trên URL và body không khớp.");
-        }
-
-        var exists = await _context.Users.AnyAsync(u => u.Id == id);
-        if (!exists)
+        var updated = await _userService.UpdateAsync(id, request);
+        if (updated is null)
         {
             return NotFound();
         }
 
-        _context.Entry(user).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
-
-        return NoContent();
+        return Ok(updated);
     }
 
     // DELETE: api/users/{id}
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
-        var user = await _context.Users.FindAsync(id);
-        if (user is null)
+        var deleted = await _userService.DeleteAsync(id);
+        if (!deleted)
         {
             return NotFound();
         }
-
-        _context.Users.Remove(user);
-        await _context.SaveChangesAsync();
 
         return NoContent();
     }
