@@ -22,4 +22,6 @@ public class User
     [MaxLength(100)]
     [EmailAddress]
     public string Email { get; set; } = string.Empty;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

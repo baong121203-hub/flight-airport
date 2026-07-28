@@ -17,6 +17,13 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Tự tạo / cập nhật bảng theo model khi app chạy
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
